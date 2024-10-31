@@ -1,0 +1,170 @@
+---
+title: "Portfolio Assignment 2"
+author: "Nadia Hajighassem"
+date: "2024-11-13"
+output:
+  html_document: 
+    theme: journal
+    toc: yes
+    toc_float:
+      collapsed: true
+    highlight: breezedark
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+```
+
+```{r}
+# install packages
+pacman::p_load("dslabs",
+               "tidyverse",
+               "dplyr",
+               "car",
+               "hrbrthemes")
+```
+
+## [Part 1]{.underline}
+
+-   Load the 'divorce_margarine'dataset from the 'dslabs'package. Investigate the correlation between margarine consumption and divorce rates in Maine. Would an increase in the preference for margarine lead to skyrocketing divorce rates?
+
+```{r}
+# loading in the data
+df <- dslabs::divorce_margarine
+```
+
+```{r}
+# lets take a look at the data
+head(df)
+
+# lets visualize it
+df %>%
+  ggplot(aes(x = margarine_consumption_per_capita, y = divorce_rate_maine)) +
+    geom_point(color = "tomato") +
+  theme_ipsum() +
+  ggtitle("Scatterplot of margarine consumption and divorce rates")
+```
+
+```{r}
+# correlation test
+cor.test(df$margarine_consumption_per_capita, df$divorce_rate_maine)
+```
+
+```{r}
+# linear model
+summary(lm(divorce_rate_maine ~ margarine_consumption_per_capita, df))
+```
+
+***Answer:***
+
+The Pearson's correlation coefficient is significant, r = 0.99, p = 1.33e-08. In fact, there is almost a perfect positive correlation between divorce rates and margarine consumption.
+
+A linear regression model of this relationship was also created, where it can be assessed that Margarine consumption per capita is a significant predictor of divorce rate, b =0.20, p = 1.33e-08. Additionally, the \\( R\^2 \\) value of 0.99 indicates that margarine consumption accounts for nearly all of the variance in divorce rates.
+
+Although there seems to be a strong correlation between margarine consumption and divorce rates its important to mention that correlation is not equal to causation. Thus, this data does not suggest that margarine consumption results in divorce. Rather, the relationship may be a spurious association.
+
+## [Part 2]{.underline}
+
+1.  Load the 'GSSvocab'dataset from the 'car'package. This dataset contains people's scores on an English vocabulary test and includes demographic information.
+
+```{r}
+# load in data
+df_car <- carData::GSSvocab
+
+# check out the data
+head(df_car)
+```
+
+2\.
+
+Filter for the year 1978 and remove rows with missing values (the function na.exclude()is one way to do this--check out the documentation!).
+
+```{r}
+# filter for the year 1978
+df_new <- filter(df_car, year == 1978 )
+
+# remove NA
+df_new <- na.exclude(df_new)
+
+# sanity check
+colSums(is.na(df_new))
+```
+
+3.  
+
+Is a person's score on the vocabulary test ('vocab') significantly impacted by their level of education ('educ')? Visualize the relationship in a plot and build a model. Briefly explain the results.
+
+```{r}
+df_new %>%
+  ggplot(aes(x = educGroup, y = vocab)) +
+  geom_point(color = "pink", position = "jitter", alpha = 0.5) +
+  theme_ipsum() +
+  ggtitle("Plot of scores in the vocab test and education level")
+```
+
+```{r}
+summary(lm(vocab ~ educGroup, df_new))
+m1 <- lm(vocab ~ educGroup, df_new)
+
+```
+
+***Answer:***
+
+As shown in the summary of the linear model, all coefficients have p-values well below 0.001, indicating that a person's score on the vocabulary test is significantly impacted by their education level. Furthermore, the model suggests that higher education levels are associated with higher vocabulary test scores.
+
+The \\( R\^2 \\) value of 0.2655 indicates that about 26.6% of the variance in vocabulary scores is explained by education group. Although education group is a significant predictor, the relatively low \\( R\^2 \\) value suggests that other factors may also play an important role in predicting vocabulary scores.
+
+4.  Whether a person is the native of an English-speaking country('nativeBorn') could potentially have an impact on the size of their vocabulary. Visualize the relationship and add the predictor to the model. Briefly explain the results.
+
+```{r}
+# visualize the relationship
+df_new %>%
+  ggplot(aes(x = nativeBorn, y = vocab)) +
+  geom_point(color = "steelblue", position = "jitter", alpha = 0.5) +
+  theme_ipsum() +
+  ggtitle("Plot of scores in the vocab test and nativeBorn")
+```
+
+```{r}
+# model with native born
+summary(lm(vocab ~ educGroup + nativeBorn, df_new))
+m2 <- lm(vocab ~ educGroup + nativeBorn, df_new)
+```
+
+***Answer:***
+
+NativeBorn is a significant predictor indicating that being a native of an english-speaking country significantly impacts vocab-test scores.
+
+An important point to consider is that, as seen in the scatterplot, the dataset contains a lower number of non-native English speakers. This smaller sample size may not fully capture the diversity of abilities within the non-native group, potentially leading to skewed results.
+
+5\.
+
+Does a person's level of education depend on whether they are a native of the country? Visualize the relationship. Do you think it makes sense to add the relationship as an interaction term? Try creating the model and briefly explain the result
+
+```{r}
+# visualizing the relationsship
+df_new %>%
+  ggplot(aes(x = nativeBorn, y = educGroup)) +
+  geom_point(color = "orange", position = "jitter", alpha = 0.3) +
+  theme_ipsum() +
+  ggtitle("Plot of nativeBorn and educGroup")
+```
+
+```{r}
+# creating the model
+summary(lm(vocab ~ educGroup*nativeBorn, df_new))
+m3 <- lm(vocab ~ educGroup*nativeBorn, df_new)
+```
+
+6.  
+
+Which model performs best?
+
+```{r}
+anova(m1,m2,m3)
+```
+
+***Answer:***
+
+Model 2 has a significant F-test, p=0.0003, indicating that adding the predictor nativeBorn significantly improves the model. In contrast, Model 3 does not have a significant F-test, meaning that including the interaction between educGroup and nativeBorn does not significantly improve model fit. Therefore, Model 2 is the best model.
